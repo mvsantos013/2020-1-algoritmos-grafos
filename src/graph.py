@@ -1,16 +1,20 @@
 from src.vertex import Vertex
 from src.exceptions import *
+from src.logger import Logger
 
 class DirectedGraph(object):
   
-  def __init__(self):
+  def __init__(self, enable_logs=False):
     self.vertices = {}
     self.directed = True
+    self.logger = Logger(enabled=enable_logs)
+    self.logger.log(f'{self.get_graph_type()} Graph created.')
     
   def add_vertex(self, id):
     ''' Add vertex do graph. '''
     new_vertex = Vertex(id)
     self.vertices[id] = new_vertex
+    self.logger.log(f'Added vertex {id} to graph.')
     return new_vertex
     
   def get_vertex(self, id):
@@ -27,6 +31,7 @@ class DirectedGraph(object):
       if vertex.has_neighbor(id):
         vertex.remove_neighbor(id)
     del self.vertices[id]
+    self.logger.log(f'Removed vertex {id} from graph.')
 
   def get_vertices(self):
     ''' Get all vertices from graph. '''
@@ -43,10 +48,11 @@ class DirectedGraph(object):
     if id2 not in self.vertices:
       raise VertexNotFound(id2)
     if self.has_edge(id1, id2):
-      print(f'Graph already has edge from {id1} to {id2}.')
+      self.logger.log(f'Graph already has edge ({id1}, {id2}).')
       return
     
     self.vertices[id1].add_neighbor(self.vertices[id2])
+    self.logger.log(f'Added edge ({id1}, {id2}) to graph.')
   
   def get_edges(self):
     ''' Get all edges from graph. '''
@@ -65,6 +71,9 @@ class DirectedGraph(object):
     ''' Determines if graph already has an edge. '''
     return (id1, id2) in self.get_edges()
   
+  def get_graph_type(self):
+    return 'Directed' if self.directed else 'Undirected'
+
   def get_max_degree(self):
     ''' Get max degree from graph. '''
     max_degree = 0
@@ -72,16 +81,28 @@ class DirectedGraph(object):
       if vertex.get_degree() > max_degree:
         max_degree = vertex.get_degree()
     return max_degree
+  
+  def get_subjacent_graph(self):
+    ''' Get subjacent graph '''
+    graph = UndirectedGraph()
+    for id in self.get_vertices_ids():
+      graph.add_vertex(id)
+    for edge in self.get_edges():
+      graph.add_edge(edge[0], edge[1])
+    return graph
 
-  def __str__(self):
-    ''' ToString override. '''
+  def show(self):
+    ''' Show graph. '''
     vertices_ids = self.get_vertices_ids()
     vertices_ids_str = ", ".join([str(x) for x in vertices_ids])
     edges = self.get_edges()
     edges_str = ", ".join([f"({pair[0]}, {pair[1]})" for pair in edges])
-    g_type = 'Directed' if self.directed else 'Undirected'
-    return f'Printing Graph:\nType: {g_type}\nMax Degree: {self.get_max_degree()}\nVertices: {vertices_ids_str}\nEdges: {edges_str}\n'
 
+    print('Showing graph info...')
+    print(f'\tType: {self.get_graph_type()}')
+    print(f'\tMax Degree: {self.get_max_degree()}')
+    print(f'\tVertices: {vertices_ids_str}')
+    print(f'\tEdges: {edges_str}')
 
 
 class UndirectedGraph(DirectedGraph):
@@ -96,7 +117,7 @@ class UndirectedGraph(DirectedGraph):
     if id2 not in self.vertices:
       raise VertexNotFound(id2)
     if self.has_edge(id1, id2) or self.has_edge(id2, id1):
-      print(f'Graph already has edge from {id1} to {id2}.')
+      self.logger.log(f'Graph already has edge ({id1}, {id2}).')
       return
     
     self.vertices[id1].add_neighbor(self.vertices[id2])
