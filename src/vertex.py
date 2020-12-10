@@ -2,7 +2,7 @@ from src.exceptions import *
 
 class Vertex(object):
     
-  def __init__(self,id):
+  def __init__(self, id):
     self.id = id
     self.neighbors = {}
   
@@ -19,6 +19,12 @@ class Vertex(object):
     if not self.has_neighbor(id):
       raise VertexNeighborNotFound(self.get_id(), id)
     del self.neighbors[id]
+  
+  def update_neighbor(self, vertex, new_vertex):
+    ''' Update neighbor. '''
+    self.neighbors[new_vertex.id] = new_vertex
+    if vertex.id != new_vertex.id:
+      del self.neighbors[vertex.id] # Delete old reference
       
   def get_neighbors(self):
     ''' Get all neighbors. '''
@@ -26,7 +32,7 @@ class Vertex(object):
 
   def get_neighbors_ids(self):
     ''' Get all neighbors. '''
-    return self.neighbors.keys()
+    return list(self.neighbors.keys())
   
   def has_neighbor(self, id):
     ''' Check if has neighbor with id. '''
@@ -38,4 +44,4 @@ class Vertex(object):
   
   def __str__(self):
     ''' To string. '''
-    return str(self.id)
+    return f'Vertex {{id: {self.id}}}'

@@ -1,6 +1,7 @@
 from src.vertex import Vertex
 from src.exceptions import *
 from src.logger import Logger
+from copy import deepcopy
 
 class DirectedGraph(object):
   
@@ -17,21 +18,27 @@ class DirectedGraph(object):
     self.logger.log(f'Added vertex {id} to graph.')
     return new_vertex
     
-  def get_vertex(self, id):
-    ''' Get vertex from graph. '''
-    if id not in self.vertices:
-      raise VertexNotFound(id)
-    return self.vertices[id]
-  
   def remove_vertex(self, id):
     ''' Remove vertex from graph. '''
-    if not self.has_vertex(id):
-      raise VertexNotFound(id)
-    for vertex in self.get_vertices():
-      if vertex.has_neighbor(id):
-        vertex.remove_neighbor(id)
+    for v in self.get_vertices():
+      if v.has_neighbor(id):
+        v.remove_neighbor(id)
     del self.vertices[id]
     self.logger.log(f'Removed vertex {id} from graph.')
+  
+  def update_vertex(self, vertex, new_vertex):
+    ''' Update vertex in graph and its reference if necessary. '''
+    for v in self.get_vertices():
+      if v.has_neighbor(vertex.id):
+        v.update_neighbor(vertex, new_vertex)
+  
+    if vertex.id != new_vertex.id:
+      self.vertices[new_vertex.id] = new_vertex   # Add new reference
+      del self.vertices[vertex.id]                # Delete old reference
+
+  def get_vertex(self, id):
+    ''' Get vertex from graph. '''
+    return self.vertices[id]
 
   def get_vertices(self):
     ''' Get all vertices from graph. '''
@@ -39,21 +46,17 @@ class DirectedGraph(object):
   
   def get_vertices_ids(self):
     ''' Get all vertices ids from graph. '''
-    return self.vertices.keys()
+    return list(self.vertices.keys())
 
   def add_edge(self, id1, id2):
     ''' Add edge to graph. '''
-    if id1 not in self.vertices:
-      raise VertexNotFound(id1)
-    if id2 not in self.vertices:
-      raise VertexNotFound(id2)
     if self.has_edge(id1, id2):
       self.logger.log(f'Graph already has edge ({id1}, {id2}).')
       return
     
     self.vertices[id1].add_neighbor(self.vertices[id2])
     self.logger.log(f'Added edge ({id1}, {id2}) to graph.')
-  
+
   def get_edges(self):
     ''' Get all edges from graph. '''
     edges = []
@@ -90,6 +93,19 @@ class DirectedGraph(object):
     for edge in self.get_edges():
       graph.add_edge(edge[0], edge[1])
     return graph
+  
+  def compact(self):
+    ''' Update vertices to compact vertices ids. '''
+    vertices_ids = self.get_vertices_ids().copy()
+    vertices_ids.sort()
+    self.logger.log(f'Compacting vertices: {", ".join([str(x) for x in vertices_ids])}')
+    for (index, vertex_id) in enumerate(vertices_ids):
+      new_id = index + 1
+      old_vertex = self.get_vertex(vertex_id)
+      new_vertex = deepcopy(old_vertex)
+      new_vertex.id = new_id
+      self.update_vertex(old_vertex, new_vertex)
+    self.logger.log(f'Vertices compacted: {", ".join([str(x) for x in self.get_vertices_ids()])}')
 
   def show(self):
     ''' Show graph. '''
@@ -112,10 +128,6 @@ class UndirectedGraph(DirectedGraph):
   
   def add_edge(self, id1, id2):
     ''' Add edge to graph. '''
-    if id1 not in self.vertices:
-      raise VertexNotFound(id1)
-    if id2 not in self.vertices:
-      raise VertexNotFound(id2)
     if self.has_edge(id1, id2) or self.has_edge(id2, id1):
       self.logger.log(f'Graph already has edge ({id1}, {id2}).')
       return
@@ -124,7 +136,7 @@ class UndirectedGraph(DirectedGraph):
     self.vertices[id2].add_neighbor(self.vertices[id1])
   
   def get_edges(self):
-    ''' Get all edges from graph. Ignores duplicated edges. '''
+    ''' Get all edges from graph. Ignore duplicated edges. '''
     edges = []
     for vertex in self.get_vertices():
       for neighbor in vertex.get_neighbors():
